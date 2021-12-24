@@ -3,13 +3,16 @@ import Layout from "../../components/Layout";
 import { getAllPostIds, getPostData } from "../../lib/posts";
 // アイコン名(uppercamelcase)+Icon で heroiconsのアイコンをコンポーネントとして呼び出せる
 import { ChevronDoubleLeftIcon } from "@heroicons/react/solid";
+import { useRouter } from "next/router";
 
 /**
  * ブログの詳細一覧画面
  * @param post getStaticPropsの戻り値propsが渡される
  */
 export default function Post({ post }) {
-    if (!post) {
+    const router = useRouter();
+
+    if (router.isFallback || !post) {
         return <div>Loading......</div>;
     }
     return (
@@ -45,7 +48,11 @@ export async function getStaticPaths() {
     const paths = await getAllPostIds();
     return {
         paths,
-        fallback: false, // getStaticPathsで生成されていないパスは全て「404」ページを返す
+        /**
+         * true: 「404」ページを返さずgetStaticPropsを実行してidに紐づく静的ファイルを生成する
+         * false: getStaticPathsで生成されていないパスは全て「404」ページを返す
+         */
+        fallback: true,
     };
 }
 
@@ -59,5 +66,11 @@ export async function getStaticProps({ params }) {
         props: {
             post,
         },
+        /**
+         * ISRにする(revalidate の値は秒数で前回から何秒以内のアクセスを無視するか指定)
+         * WARNING: devモードだとISRの検証不可(devモードでは毎回getStaticPropsが呼び出される)
+         *          「npm run build」 -> 「npm start」の順に実行
+         */
+        revalidate: 3,
     };
 }
